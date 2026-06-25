@@ -67,6 +67,107 @@ If you want to try it out:
 
 4. Go back to `http://localhost:8000` and try it out!
 
+---
+
+## Social Prediction Market (SPM)
+
+A privacy-preserving prediction market built on Soroban with ZK proofs for vote privacy and "minority wins" resolution.
+
+### Features
+
+- **Vote Privacy**: Individual votes remain hidden until market resolution
+- **Nullifier System**: Prevents double-voting without revealing identity
+- **Minority Wins**: Markets resolve based on underrepresented outcome
+- **ZK Proofs**: Groth16 proofs verify vote validity off-chain
+
+### Components
+
+| Component | Location | Description |
+|-----------|----------|-------------|
+| Circuit | `circuits/spm/` | Circom circuit for binary voting |
+| Contract | `contracts/spm/` | Soroban contract for market management |
+| Prover | `tools/prover/` | Node.js tool for ZK proof generation |
+
+### Build & Deploy
+
+```bash
+# Install Rust (for contract)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source "$HOME/.cargo/env"
+rustup target add wasm32v1-none
+
+# Install Stellar CLI
+curl -fsSL https://github.com/stellar/stellar-cli/raw/main/install.sh | sh
+
+# Build contract
+cd contracts/spm && stellar contract build
+
+# Generate ZK setup
+cd ../..
+make setup  # Powers of Tau ceremony
+make zkey   # Generate proving key
+
+# Deploy to testnet
+stellar keys generate alice --network testnet --fund
+stellar contract deploy \
+  --wasm target/wasm32v1-none/release/social_prediction_market.wasm \
+  --source-account alice --network testnet --alias spm
+```
+
+### Testnet Deployment
+
+| Item | Value |
+|------|-------|
+| Contract ID | `CD3VMIEISSHPRQSQPGQZ2CVCQQT4YY2BI7JAFUFCUKEX45E2XQLXRKYO` |
+| Network | Testnet |
+| WASM Hash | `ab7688008ec5a48c4005ab4cf792aefe228ad457a938d804711f1d2e43daa8cf` |
+| Explorer | [View on Stellar Expert](https://stellar.expert/explorer/testnet/account/CD3VMIEISSHPRQSQPGQZ2CVCQQT4YY2BI7JAFUFCUKEX45E2XQLXRKYO) |
+
+### CLI Usage
+
+```bash
+# Initialize market
+stellar contract invoke --id spm --network testnet --send yes -- \
+  initialize --vk <32_hex> --nullifier-root <32_hex>
+
+# Submit vote (with ZK proof)
+stellar contract invoke --id spm --network testnet --send yes -- \
+  submit_vote --voter <addr> --nullifier <hex> --vote-commitment <hex> --proof-data <hex>
+
+# Resolve market
+stellar contract invoke --id spm --network testnet --send yes -- \
+  resolve --votes-yes 1 --votes-no 1 --total-voters 2 --minority-threshold 30
+
+# Query results
+stellar contract invoke --id spm --network testnet -- get_status
+stellar contract invoke --id spm --network testnet -- get_result
+```
+
+### Test Results (June 2026)
+
+| Function | Status |
+|----------|--------|
+| Deploy Contract | ✅ Passed |
+| Initialize | ✅ Passed |
+| Submit Vote | ✅ Passed |
+| Resolve Market | ✅ Passed |
+| Close Market | ✅ Passed |
+
+### Architecture
+
+```
+Voter → Prover (off-chain ZK) → Contract (stores commitment) → Resolution
+```
+
+### Can We Start Frontend Development?
+
+**Yes!** The contract is deployed and tested. The frontend can now:
+
+1. **Connect to the deployed contract** using the contract ID
+2. **Generate ZK proofs** using the prover tool or browser-based WASM
+3. **Submit votes** through the contract interface
+4. **Query market status and results**
+
 ### Architecture Overview
 
 #### Transaction Flow
