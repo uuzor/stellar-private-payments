@@ -2,24 +2,49 @@
 
 ## What Is Implemented vs What Is Mocks
 
-### ✅ REAL / IMPLEMENTED
+### ✅ VERIFIED / IMPLEMENTED
 
-| Component | Status | Description |
-|-----------|--------|-------------|
-| **ZK Circuit** | ✅ REAL | `vote.circom` - BinaryVote with Poseidon commitments |
-| **ZK Trusted Setup** | ✅ REAL | Powers of Tau (2^14) + Groth16 keys generated |
-| **Circuit Compilation** | ✅ REAL | Compiled to WASM, 2910 constraints |
-| **Soroban Contract** | ✅ REAL | Deployed on testnet |
-| **Contract Storage** | ✅ REAL | Status, votes, results stored on-chain |
-| **Nullifier Root** | ✅ REAL | Merkle tree root stored, verified in circuit |
-| **Full Groth16 Verification** | ✅ REAL | Uses Soroban's BN254 precompile for on-chain verification |
+| Component | Status | Verification |
+|-----------|--------|--------------|
+| **ZK Circuit** | ✅ DONE | `circuits/spm/vote.circom` - BinaryVote with Poseidon |
+| **Circuit Constraints** | ✅ DONE | 2910 constraints (verified in previous tests) |
+| **Soroban Contract** | ✅ DONE | Deployed to testnet |
+| **Full Groth16 Verification** | ✅ DONE | Uses BN254 pairing check - REJECTS invalid proofs |
+| **Market State Machine** | ✅ DONE | Open → Closed → Resolved flow works |
+| **Resolution Logic** | ✅ DONE | Minority wins logic tested (3 vs 2 = minority wins) |
+
+### ⚠️ PENDING - Needs Real VK
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| **Real Verification Key** | ⏳ PENDING | Script ready: `circuits/spm/setup-vk.sh` |
+| **Real Proof Generation** | ⏳ PENDING | After VK is generated |
+| **End-to-End Voting** | ⏳ PENDING | Requires real VK and proof |
 
 ### ⚠️ PARTIALLY IMPLEMENTED
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| **Browser WASM Prover** | ⚠️ IN PROGRESS | Prover tool exists, browser integration pending |
+| **Browser WASM Prover** | ⚠️ IN PROGRESS | Off-chain prover exists, browser integration pending |
 | **Real Merkle Tree** | ⚠️ PARTIAL | Root stored, full tree management off-chain |
+
+---
+
+## Testnet Verification Results
+
+### Contract: `CBOSKNHEZWT2PP2NYRDHWI4MXFDX4WPUYFSANAKUNBMMKXKRQLJH5YM5`
+
+| Test | Result | Evidence |
+|------|--------|----------|
+| Initialize | ✅ Success | TX: `acafc3e9...` |
+| Invalid Proof Rejected | ✅ Success | Proof validation REJECTS fake proofs |
+| Resolve Market | ✅ Success | TX: `b25acb42...` |
+
+### Resolution Test
+```
+Input:  votes_yes=3, votes_no=2, minority_threshold=30%
+Output: minority_wins=true (minority=2, which is 40% >= 30%)
+```
 
 ---
 
