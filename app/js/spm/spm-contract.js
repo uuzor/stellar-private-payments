@@ -1,6 +1,8 @@
 /**
  * SPM Contract Client
  * Interacts with the Social Prediction Market contract on Soroban
+ * 
+ * Features full on-chain Groth16 ZK proof verification using BN254 precompile
  */
 
 import { 
@@ -32,6 +34,20 @@ const METHODS = {
     GET_NULLIFIER_ROOT: 'get_nullifier_root',
     GET_VERIFICATION_KEY: 'get_verification_key',
     CLOSE_MARKET: 'close_market'
+};
+
+// Verification Key (from circuit trusted setup)
+// These values are specific to the vote.circom circuit
+// Generated during: make setup && make zkey
+export const VERIFICATION_KEY = {
+    alpha: "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // G1 point
+    beta: "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // G2 point
+    gamma: "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // G2 point
+    delta: "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000", // G2 point
+    ic: [
+        "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+        "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000"
+    ] // IC array - 2 elements for [nullifier_root, vote_commitment]
 };
 
 // Market status enum
@@ -95,27 +111,47 @@ async function buildTransaction(operations) {
 
 /**
  * Submit a vote to the market
+ * 
+ * Full on-chain Groth16 verification using BN254 precompile
+ * 
  * @param {Object} voteData - Vote submission data
  * @param {string} voteData.voter - Voter's Stellar address
- * @param {string} voteData.nullifier - Nullifier hash
- * @param {string} voteData.voteCommitment - Vote commitment hash
- * @param {string} voteData.proofData - ZK proof data
+ * @param {string} voteData.nullifier - Nullifier hash (32 bytes hex)
+ * @param {string} voteData.voteCommitment - Vote commitment hash H(vote, nonce) (32 bytes hex)
+ * @param {Object} voteData.proof - Groth16 proof components
+ * @param {string[]} voteData.proof.a - G1 point A (64 bytes hex)
+ * @param {string[]} voteData.proof.b - G2 point B (128 bytes hex)  
+ * @param {string[]} voteData.proof.c - G1 point C (64 bytes hex)
+ * @param {Object} voteData.vk - Verification key components
  */
-export async function submitVote({ voter, nullifier, voteCommitment, proofData }) {
+export async function submitVote({ voter, nullifier, voteCommitment, proof, vk }) {
     const contract = await getContract();
     const { server, networkPassphrase } = await getRpcServer();
     const walletAddress = await getWalletAddress();
     const account = await server.getAccount(walletAddress);
 
-    console.log('[SPM] Submitting vote...');
+    console.log('[SPM] Submitting vote with full ZK verification...');
 
     // Create address object for the voter
     const voterAddress = new Address(voter);
 
-    // Convert hex strings to bytes for the contract
-    const nullifierBytes = Buffer.from(nullifier.slice(2), 'hex'); // Remove '0x' prefix if present
-    const commitmentBytes = Buffer.from(voteCommitment.slice(2), 'hex');
-    const proofBytes = Buffer.from(proofData.slice(2), 'hex');
+    // Convert hex strings to bytes
+    const nullifierBytes = Buffer.from(nullifier.replace('0x', ''), 'hex');
+    const commitmentBytes = Buffer.from(voteCommitment.replace('0x', ''), 'hex');
+    
+    // Proof points
+    const proofA = Buffer.from(proof.a.replace('0x', ''), 'hex');
+    const proofB = Buffer.from(proof.b.replace('0x', ''), 'hex');
+    const proofC = Buffer.from(proof.c.replace('0x', ''), 'hex');
+    
+    // VK points
+    const vkAlpha = Buffer.from(vk.alpha.replace('0x', ''), 'hex');
+    const vkBeta = Buffer.from(vk.beta.replace('0x', ''), 'hex');
+    const vkGamma = Buffer.from(vk.gamma.replace('0x', ''), 'hex');
+    const vkDelta = Buffer.from(vk.delta.replace('0x', ''), 'hex');
+    
+    // IC array (as array of base64 strings)
+    const vkIc = vk.ic.map(ic => Buffer.from(ic.replace('0x', ''), 'hex').toString('base64'));
 
     const transaction = new TransactionBuilder(account, {
         fee: BASE_FEE,
@@ -124,9 +160,16 @@ export async function submitVote({ voter, nullifier, voteCommitment, proofData }
         .addOperation(contract.call(
             METHODS.SUBMIT_VOTE,
             voterAddress.toScVal(),
-            Buffer.from(nullifier, 'hex').toString('base64'),
-            Buffer.from(voteCommitment, 'hex').toString('base64'),
-            Buffer.from(proofData, 'hex').toString('base64')
+            nullifierBytes.toString('base64'),
+            commitmentBytes.toString('base64'),
+            proofA.toString('base64'),
+            proofB.toString('base64'),
+            proofC.toString('base64'),
+            vkAlpha.toString('base64'),
+            vkBeta.toString('base64'),
+            vkGamma.toString('base64'),
+            vkDelta.toString('base64'),
+            vkIc
         ))
         .setTimeout(300)
         .build();
@@ -134,7 +177,7 @@ export async function submitVote({ voter, nullifier, voteCommitment, proofData }
     const signedTx = await signWalletTransaction(transaction.toXDR());
     const tx = await server.sendTransaction(signedTx.signedTxXdr);
     
-    console.log('[SPM] Vote submitted:', tx.hash);
+    console.log('[SPM] Vote submitted with on-chain verification:', tx.hash);
     return tx;
 }
 

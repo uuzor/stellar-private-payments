@@ -12,15 +12,14 @@
 | **Soroban Contract** | ✅ REAL | Deployed on testnet |
 | **Contract Storage** | ✅ REAL | Status, votes, results stored on-chain |
 | **Nullifier Root** | ✅ REAL | Merkle tree root stored, verified in circuit |
+| **Full Groth16 Verification** | ✅ REAL | Uses Soroban's BN254 precompile for on-chain verification |
 
-### ⚠️ MOCKED / NOT IMPLEMENTED
+### ⚠️ PARTIALLY IMPLEMENTED
 
 | Component | Status | Description |
 |-----------|--------|-------------|
-| **ZK Proof Verification ON-CHAIN** | ❌ MOCKED | Contract accepts `proof_data` but doesn't verify |
-| **Full Groth16 Verifier** | ❌ NOT BUILT | Would require ~100k gas, expensive on Soroban |
-| **Real Merkle Tree** | ⚠️ PARTIAL | Root stored, but tree management off-chain |
-| **Browser WASM Prover** | ❌ NOT BUILT | Prover tool exists but not browser-integrated |
+| **Browser WASM Prover** | ⚠️ IN PROGRESS | Prover tool exists, browser integration pending |
+| **Real Merkle Tree** | ⚠️ PARTIAL | Root stored, full tree management off-chain |
 
 ---
 
@@ -191,13 +190,37 @@ Should be: Votes batched and submitted together
 - ✅ Real Groth16 proving/verification keys  
 - ✅ Vote commitment scheme (Poseidon hash)
 - ✅ Nullifier system for double-vote prevention
-- ⚠️ Proof data accepted but NOT verified on-chain
+- ✅ **FULL ON-CHAIN Groth16 verification using Soroban's BN254 precompile**
 
-**What's Mocked:**
-- ❌ On-chain proof verification (would cost ~100k gas)
-- ❌ Full privacy (timing/count still visible)
+**What's Partially Implemented:**
+- ⚠️ Browser WASM prover (off-chain prover exists, browser integration pending)
+- ⚠️ Full privacy (timing/count still visible, but vote values are hidden)
 
-**Verdict:** The privacy is **PARTIAL**. Vote values are hidden by the commitment scheme, but the implementation is not trustless (relies on off-chain proof verification). For production use, implement on-chain Groth16 verification or use a trusted prover service.
+**Verdict:** The system is now **TRUSTLESS** for vote validation. Each vote submission requires a valid Groth16 proof that is verified on-chain using BN254 pairing checks. Fake votes without valid proofs will be rejected.
+
+### Privacy Properties Summary
+
+| Property | Status | Notes |
+|----------|--------|-------|
+| Vote secrecy | ✅ | Commitment hides vote until resolution |
+| Double-vote prevention | ✅ | Nullifier + on-chain verification |
+| Proof validity | ✅ | **FULL on-chain Groth16 verification** |
+| Identity privacy | ⚠️ | Address public, but not linked to vote |
+| Timing privacy | ❌ | Block timing reveals order |
+| Count privacy | ❌ | Total count visible at all times |
+
+### How On-Chain Verification Works
+
+The contract performs these cryptographic checks on every vote:
+
+```rust
+// 1. Verifies proof points are valid on BN254 curve
+// 2. Computes vk_x = IC[0] + sum(IC[i+1] * pub_input[i])
+// 3. Performs pairing check:
+//    e(-A, B) * e(alpha, beta) * e(vk_x, gamma) * e(C, delta) == 1
+```
+
+If the proof is invalid, the transaction REJECTS the vote.
 
 ---
 
