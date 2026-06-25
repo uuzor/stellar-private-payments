@@ -34,7 +34,11 @@
 
 ## Testnet Verification Results
 
-### Contract: `CBOSKNHEZWT2PP2NYRDHWI4MXFDX4WPUYFSANAKUNBMMKXKRQLJH5YM5`
+### Contract: `CCQ3T4VKYXBGJQ3BXPUCKOW4CDFQ5YR4UY4N54QY4EJOWC2NEYIJJZQI`
+
+**WASM Hash**: `65d72125698b9235648d36adf452353fcd065946feedce1b2af87d4bef9349b4`
+
+**VK Hash**: `6db91d793a6518cdbb85b68483240e4275073f56faf2cce681a64b16e2900afc`
 
 | Test | Result | Evidence |
 |------|--------|----------|

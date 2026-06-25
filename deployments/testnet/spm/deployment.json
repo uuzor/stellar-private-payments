@@ -1,5 +1,5 @@
 {
-  "contract_id": "CBOSKNHEZWT2PP2NYRDHWI4MXFDX4WPUYFSANAKUNBMMKXKRQLJH5YM5",
+  "contract_id": "CCQ3T4VKYXBGJQ3BXPUCKOW4CDFQ5YR4UY4N54QY4EJOWC2NEYIJJZQI",
   "network": "testnet",
   "deployed_at": "2026-06-25T14:30:00Z",
   "alias": "spm",
@@ -10,7 +10,7 @@
     "bn254_pairing_check": true,
     "note": "On-chain ZK proof verification enabled"
   },
-  "explorer": "https://stellar.expert/explorer/testnet/account/CBOSKNHEZWT2PP2NYRDHWI4MXFDX4WPUYFSANAKUNBMMKXKRQLJH5YM5",
+  "explorer": "https://stellar.expert/explorer/testnet/account/CCQ3T4VKYXBGJQ3BXPUCKOW4CDFQ5YR4UY4N54QY4EJOWC2NEYIJJZQI",
   "tests": [
     {
       "name": "Initialize Market",
