@@ -1,9 +1,36 @@
 {
-  "contract_id": "CD3VMIEISSHPRQSQPGQZ2CVCQQT4YY2BI7JAFUFCUKEX45E2XQLXRKYO",
+  "contract_id": "CCQ3T4VKYXBGJQ3BXPUCKOW4CDFQ5YR4UY4N54QY4EJOWC2NEYIJJZQI",
   "network": "testnet",
   "deployed_at": "2026-06-25T14:30:00Z",
   "alias": "spm",
-  "wasm_hash": "ab7688008ec5a48c4005ab4cf792aefe228ad457a938d804711f1d2e43daa8cf",
-  "version": "0.1.0",
-  "explorer": "https://stellar.expert/explorer/testnet/account/CD3VMIEISSHPRQSQPGQZ2CVCQQT4YY2BI7JAFUFCUKEX45E2XQLXRKYO"
+  "wasm_hash": "65d72125698b9235648d36adf452353fcd065946feedce1b2af87d4bef9349b4",
+  "version": "0.2.0",
+  "features": {
+    "full_groth16_verification": true,
+    "bn254_pairing_check": true,
+    "note": "On-chain ZK proof verification enabled"
+  },
+  "explorer": "https://stellar.expert/explorer/testnet/account/CCQ3T4VKYXBGJQ3BXPUCKOW4CDFQ5YR4UY4N54QY4EJOWC2NEYIJJZQI",
+  "tests": [
+    {
+      "name": "Initialize Market",
+      "tx": "acafc3e9c7c2c4c327a6418152063f890ac333d967589e821ce5242fcc673cb3",
+      "status": "success"
+    },
+    {
+      "name": "Invalid Proof Rejected",
+      "status": "success",
+      "note": "Invalid proofs correctly rejected - verification works!"
+    },
+    {
+      "name": "Resolve Market",
+      "tx": "b25acb42ca100a4262111a1c38dd45330a62d6381c45ae7da263f58d9db47531",
+      "status": "success",
+      "result": {
+        "votes_yes": 3,
+        "votes_no": 2,
+        "minority_wins": true
+      }
+    }
+  ]
 }
